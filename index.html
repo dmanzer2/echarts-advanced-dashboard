@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced ECharts Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+    <h1>Advanced ECharts Dashboard</h1>
+    
+    <div class="controls">
+        <button onclick="updateData()">Update Data</button>
+        <button onclick="toggleAnimation()">Toggle Animation</button>
+        <button onclick="exportCharts()">Export Charts</button>
+    </div>
+    
+    <div class="dashboard">
+        <div class="chart-container">
+            <h3 class="chart-title">Sales & Temperature (Dual Axis)</h3>
+            <div id="chart1" class="chart"></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Scatter Plot with Regression Line</h3>
+            <div id="chart2" class="chart"></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Performance Metrics (Large Dataset)</h3>
+            <div id="chart3" class="chart"></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 class="chart-title">Multi-Series Comparison</h3>
+            <div id="chart4" class="chart"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let charts = {};
+        let animationEnabled = true;
+        
+        // Generate sample data
+        function generateSalesData() {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return months.map(month => ({
+                month,
+                sales: Math.floor(Math.random() * 500) + 200,
+                temperature: Math.floor(Math.random() * 40) + 10
+            }));
+        }
+        
+        function generateScatterData() {
+            return Array.from({length: 100}, (_, i) => {
+                const x = i * 2;
+                const y = x * 1.5 + Math.random() * 50 - 25;
+                return [x, y];
+            });
+        }
+        
+        function generateLargeDataset() {
+            return Array.from({length: 10000}, (_, i) => [
+                i,
+                Math.sin(i / 100) * 50 + Math.random() * 20,
+                Math.cos(i / 80) * 30 + Math.random() * 15
+            ]);
+        }
+        
+        function generateMultiSeriesData() {
+            const categories = ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'];
+            return {
+                categories,
+                series1: categories.map(() => Math.floor(Math.random() * 100) + 20),
+                series2: categories.map(() => Math.floor(Math.random() * 80) + 30),
+                series3: categories.map(() => Math.floor(Math.random() * 120) + 40)
+            };
+        }
+        
+        // Chart 1: Sales & Temperature (Dual Axis)
+        function createChart1() {
+            const data = generateSalesData();
+            
+            const option = {
+                title: {
+                    text: 'Monthly Sales vs Temperature',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    },
+                    formatter: function(params) {
+                        let result = `<div style="padding: 10px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">`;
+                        result += `<strong>${params[0].name}</strong><br/>`;
+                        params.forEach(param => {
+                            const color = param.color;
+                            const unit = param.seriesName === 'Sales' ? '$' : '°C';
+                            result += `<div style="margin: 5px 0;">`;
+                            result += `<span style="display: inline-block; width: 10px; height: 10px; background: ${color}; border-radius: 50%; margin-right: 8px;"></span>`;
+                            result += `${param.seriesName}: ${unit}${param.value}`;
+                            result += `</div>`;
+                        });
+                        result += '</div>';
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['Sales', 'Temperature'],
+                    top: 30
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: data.map(d => d.month),
+                    axisLine: {
+                        lineStyle: {
+                            color: '#667eea'
+                        }
+                    },
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: 'Sales ($)',
+                        position: 'left',
+                        nameTextStyle: {
+                          align: 'right',
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#667eea'
+                            }
+                        },
+                        axisLabel: {
+                            formatter: '${value}',
+                            margin: 20,
+                            show: true
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: 'Temperature (°C)',
+                        position: 'right',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#e74c3c'
+                            }
+                        },
+                        axisLabel: {
+                            formatter: '{value}°C',
+                            margin: 20,
+                            show: true
+                        }
+                    }
+                ],
+                series: [
+                    {
+                        name: 'Sales',
+                        type: 'bar',
+                        barWidth: 25,
+                        data: data.map(d => d.sales),
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {offset: 0, color: '#667eea'},
+                                {offset: 1, color: '#764ba2'}
+                            ])
+                        },
+                        animationDelay: function (idx) {
+                            return idx * 100;
+                        }
+                    },
+                    {
+                        name: 'Temperature',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: data.map(d => d.temperature),
+                        smooth: true,
+                        lineStyle: {
+                            color: '#e74c3c',
+                            width: 3
+                        },
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        animationDelay: function (idx) {
+                            return idx * 100 + 1000;
+                        }
+                    }
+                ],
+                animationEasing: 'elasticOut',
+                animationDelayUpdate: function (idx) {
+                    return idx * 5;
+                }
+            };
+            
+            return option;
+        }
+        
+        // Chart 2: Scatter Plot with Regression Line
+        function createChart2() {
+            const scatterData = generateScatterData();
+            
+            // Calculate regression line
+            const n = scatterData.length;
+            const sumX = scatterData.reduce((sum, point) => sum + point[0], 0);
+            const sumY = scatterData.reduce((sum, point) => sum + point[1], 0);
+            const sumXY = scatterData.reduce((sum, point) => sum + point[0] * point[1], 0);
+            const sumXX = scatterData.reduce((sum, point) => sum + point[0] * point[0], 0);
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            const regressionLine = scatterData.map(point => [point[0], slope * point[0] + intercept]);
+            
+            const option = {
+                title: {
+                    text: 'Correlation Analysis',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.seriesName === 'Data Points') {
+                            return `<div style="padding: 8px; background: #2c3e50; color: white; border-radius: 4px;">
+                                <strong>Point ${params.dataIndex + 1}</strong><br/>
+                                X: ${params.value[0].toFixed(2)}<br/>
+                                Y: ${params.value[1].toFixed(2)}
+                            </div>`;
+                        } else {
+                            return `<div style="padding: 8px; background: #e74c3c; color: white; border-radius: 4px;">
+                                <strong>Regression Line</strong><br/>
+                                Y = ${slope.toFixed(2)}X + ${intercept.toFixed(2)}
+                            </div>`;
+                        }
+                    }
+                },
+                legend: {
+                    data: ['Data Points', 'Regression Line'],
+                    top: 30
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'X Value',
+                    nameLocation: 'middle',
+                    nameGap: 30
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Y Value',
+                    nameLocation: 'middle',
+                    nameGap: 30
+                },
+                series: [
+                    {
+                        name: 'Data Points',
+                        type: 'scatter',
+                        data: scatterData,
+                        symbolSize: 6,
+                        itemStyle: {
+                            color: '#3498db',
+                            opacity: 0.7
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                color: '#2980b9',
+                                opacity: 1,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            }
+                        }
+                    },
+                    {
+                        name: 'Regression Line',
+                        type: 'line',
+                        data: regressionLine,
+                        lineStyle: {
+                            color: '#e74c3c',
+                            width: 3
+                        },
+                        symbol: 'none',
+                        smooth: false
+                    }
+                ]
+            };
+            
+            return option;
+        }
+        
+        // Chart 3: Performance Metrics (Large Dataset with Optimization)
+        function createChart3() {
+            const data = generateLargeDataset();
+            
+            const option = {
+                title: {
+                    text: 'Performance Metrics (10K Points)',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    },
+                    formatter: function(params) {
+                        return `<div style="padding: 8px; background: #34495e; color: white; border-radius: 4px;">
+                            <strong>Index: ${params[0].dataIndex}</strong><br/>
+                            ${params.map(p => `${p.seriesName}: ${p.value[1].toFixed(2)}`).join('<br/>')}
+                        </div>`;
+                    }
+                },
+                legend: {
+                    data: ['Metric A', 'Metric B'],
+                    top: 30
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'Time Index'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Value'
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 20
+                    },
+                    {
+                        show: true,
+                        type: 'slider',
+                        start: 0,
+                        end: 20,
+                        height: 20,
+                        bottom: 10
+                    }
+                ],
+                series: [
+                    {
+                        name: 'Metric A',
+                        type: 'line',
+                        data: data.map(d => [d[0], d[1]]),
+                        symbol: 'none',
+                        lineStyle: {
+                            color: '#3498db',
+                            width: 1
+                        },
+                        large: true,
+                        largeThreshold: 1000
+                    },
+                    {
+                        name: 'Metric B',
+                        type: 'line',
+                        data: data.map(d => [d[0], d[2]]),
+                        symbol: 'none',
+                        lineStyle: {
+                            color: '#e74c3c',
+                            width: 1
+                        },
+                        large: true,
+                        largeThreshold: 1000
+                    }
+                ]
+            };
+            
+            return option;
+        }
+        
+        // Chart 4: Multi-Series Comparison
+        function createChart4() {
+            const data = generateMultiSeriesData();
+            
+            const option = {
+                title: {
+                    text: 'Product Performance Comparison',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        let result = `<div style="padding: 10px; background: #2c3e50; color: white; border-radius: 8px;">`;
+                        result += `<strong>${params[0].name}</strong><br/>`;
+                        params.forEach(param => {
+                            result += `<div style="margin: 5px 0;">`;
+                            result += `<span style="display: inline-block; width: 10px; height: 10px; background: ${param.color}; border-radius: 50%; margin-right: 8px;"></span>`;
+                            result += `${param.seriesName}: ${param.value}`;
+                            result += `</div>`;
+                        });
+                        result += '</div>';
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['Q1 Sales', 'Q2 Sales', 'Q3 Sales'],
+                    top: 30
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.categories,
+                    axisLabel: {
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Sales Volume'
+                },
+                series: [
+                    {
+                        name: 'Q1 Sales',
+                        type: 'bar',
+                        data: data.series1,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {offset: 0, color: '#667eea'},
+                                {offset: 1, color: '#764ba2'}
+                            ])
+                        },
+                        animationDelay: function (idx) {
+                            return idx * 100;
+                        }
+                    },
+                    {
+                        name: 'Q2 Sales',
+                        type: 'bar',
+                        data: data.series2,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {offset: 0, color: '#ffeaa7'},
+                                {offset: 1, color: '#fab1a0'}
+                            ])
+                        },
+                        animationDelay: function (idx) {
+                            return idx * 100 + 500;
+                        }
+                    },
+                    {
+                        name: 'Q3 Sales',
+                        type: 'line',
+                        data: data.series3,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#00b894',
+                            width: 3
+                        },
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        animationDelay: function (idx) {
+                            return idx * 100 + 1000;
+                        }
+                    }
+                ]
+            };
+            
+            return option;
+        }
+        
+        // Initialize all charts
+        function initializeCharts() {
+            charts.chart1 = echarts.init(document.getElementById('chart1'));
+            charts.chart2 = echarts.init(document.getElementById('chart2'));
+            charts.chart3 = echarts.init(document.getElementById('chart3'));
+            charts.chart4 = echarts.init(document.getElementById('chart4'));
+
+            charts.chart1.setOption(createChart1());
+            charts.chart2.setOption(createChart2());
+            charts.chart3.setOption(createChart3());
+            charts.chart4.setOption(createChart4());
+
+            // Fade axis names/labels when legend toggled for chart1
+            charts.chart1.on('legendselectchanged', function (params) {
+                // Get current chart option to preserve zoom/data/selection
+                const currentOption = charts.chart1.getOption();
+                // Only update yAxis name and axisLabel.show
+                const yAxis = [
+                  Object.assign({}, currentOption.yAxis[0]),
+                  Object.assign({}, currentOption.yAxis[1])
+                ];
+                if (params.selected['Sales']) {
+                  yAxis[0].name = 'Sales ($)';
+                  yAxis[0].axisLabel.show = true;
+                } else {
+                  yAxis[0].name = '';
+                  yAxis[0].axisLabel.show = false;
+                }
+                if (params.selected['Temperature']) {
+                  yAxis[1].name = 'Temperature (°C)';
+                  yAxis[1].axisLabel.show = true;
+                } else {
+                  yAxis[1].name = '';
+                  yAxis[1].axisLabel.show = false;
+                }
+                charts.chart1.setOption({ yAxis }, false);
+            });
+        }
+        
+        // Handle window resize
+        function handleResize() {
+            Object.values(charts).forEach(chart => {
+                chart.resize();
+            });
+        }
+        
+        // Update data function
+        function updateData() {
+            charts.chart1.setOption(createChart1());
+            charts.chart2.setOption(createChart2());
+            charts.chart3.setOption(createChart3());
+            charts.chart4.setOption(createChart4());
+        }
+        
+        // Toggle animation
+        function toggleAnimation() {
+            animationEnabled = !animationEnabled;
+            Object.values(charts).forEach(chart => {
+                const option = chart.getOption();
+                option.animation = animationEnabled;
+                chart.setOption(option);
+            });
+        }
+        
+        // Export charts
+        function exportCharts() {
+            Object.entries(charts).forEach(([id, chart]) => {
+                const url = chart.getDataURL({
+                    pixelRatio: 2,
+                    backgroundColor: '#fff'
+                });
+                
+                const link = document.createElement('a');
+                link.download = `${id}.png`;
+                link.href = url;
+                link.click();
+            });
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', initializeCharts);
+        window.addEventListener('resize', handleResize);
+        
+        // Performance monitoring
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(handleResize, 100);
+        });
+    </script>
+</body>
+</html>
